@@ -1,0 +1,87 @@
+/* ========================================
+   WORD COUNT DISPLAY
+   ======================================== */
+
+#word-count-display {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    pointer-events: none;
+    user-select: none;
+}
+
+.wc-content {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 8px 14px;
+    
+    background: var(--SmartThemeBlurTintColor);
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    
+    transition: all 0.25s ease;
+    opacity: 0.6;
+}
+
+.wc-number {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--SmartThemeQuoteColor);
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+}
+
+.wc-label {
+    font-size: 0.8em;
+    opacity: 0.6;
+    font-weight: 500;
+    text-transform: lowercase;
+    letter-spacing: 0.3px;
+}
+
+/* Subtle pulse animation on update */
+#word-count-display.wc-pulse .wc-content {
+    opacity: 0.8;
+}
+
+#word-count-display.wc-pulse .wc-number {
+    animation: wc-glow 0.3s ease-out;
+}
+
+@keyframes wc-glow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 1.2;
+    }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+    #word-count-display {
+        bottom: 16px;
+        right: 16px;
+    }
+    
+    .wc-content {
+        padding: 6px 10px;
+    }
+    
+    .wc-number {
+        font-size: 0.95em;
+    }
+    
+    .wc-label {
+        font-size: 0.75em;
+    }
+}
