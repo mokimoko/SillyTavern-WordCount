@@ -1,9 +1,17 @@
 import { eventSource, event_types, chat_metadata, getCurrentChatId } from '../../../../script.js';
 import { saveMetadataDebounced, extension_settings, getContext } from '../../../extensions.js';
+import { getTokenCountAsync } from '../../../tokenizers.js';
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
 
 const MODULE_NAME = 'wordCount';
+
+/** Display modes — click to cycle */
+const MODES = ['words', 'tokens'];
+let currentMode = 'words';
+
+/** Guard against overlapping async token calculations */
+let tokenCalcGeneration = 0;
 
 /**
  * Check if VerseManager's archive store is available (optional integration, no hard dependency)
@@ -79,16 +87,63 @@ function calculateWordCount() {
 }
 
 /**
+ * Calculate token count for the chat.
+ * Uses ST's getTokenCountAsync which has its own internal cache by string hash,
+ * so repeated calls for unchanged messages are essentially free lookups.
+ * @returns {Promise<number>} Token count.
+ */
+async function calculateTokenCount() {
+    const context = SillyTavern.getContext();
+    const chat = context.chat;
+
+    if (!chat || chat.length === 0) {
+        return 0;
+    }
+
+    // Collect all non-system message texts
+    const texts = chat
+        .filter(msg => !msg.is_system && msg.mes)
+        .map(msg => msg.mes);
+
+    if (texts.length === 0) return 0;
+
+    // Sum token counts per message — ST's cache makes repeat calls cheap
+    let total = 0;
+    for (const text of texts) {
+        total += await getTokenCountAsync(text);
+    }
+
+    return total;
+}
+
+/**
  * Update the display
  */
-function updateDisplay() {
-    const count = calculateWordCount();
+async function updateDisplay() {
     const visible = isVisible();
-    
     const $display = $('#word-count-display');
     
     if (!$display.length) return;
     
+    // Update visibility first
+    if (visible) {
+        $display.fadeIn(200);
+    } else {
+        $display.fadeOut(200);
+        return; // No point calculating if hidden
+    }
+
+    let count;
+
+    if (currentMode === 'tokens') {
+        // Async path — guard against stale results from overlapping calls
+        const gen = ++tokenCalcGeneration;
+        count = await calculateTokenCount();
+        if (gen !== tokenCalcGeneration) return; // A newer call superseded us
+    } else {
+        count = calculateWordCount();
+    }
+
     // Update text with animation
     const formatted = count.toLocaleString();
     const currentText = $display.find('.wc-number').text();
@@ -98,13 +153,9 @@ function updateDisplay() {
         $display.addClass('wc-pulse');
         setTimeout(() => $display.removeClass('wc-pulse'), 300);
     }
-    
-    // Update visibility
-    if (visible) {
-        $display.fadeIn(200);
-    } else {
-        $display.fadeOut(200);
-    }
+
+    // Update the label to match current mode
+    $display.find('.wc-label').text(currentMode);
 }
 
 /**
@@ -151,6 +202,16 @@ async function updateWordCountEntry() {
 }
 
 /**
+ * Cycle to the next display mode
+ */
+function cycleMode() {
+    const idx = MODES.indexOf(currentMode);
+    currentMode = MODES[(idx + 1) % MODES.length];
+    console.log(`[Word Count] Mode switched to: ${currentMode}`);
+    updateDisplay();
+}
+
+/**
  * Create the display element
  */
 function createDisplay() {
@@ -164,6 +225,9 @@ function createDisplay() {
     `);
     
     $('body').append($display);
+
+    // Click to cycle modes
+    $display.on('click', cycleMode);
     
     // Set initial visibility
     if (!isVisible()) {

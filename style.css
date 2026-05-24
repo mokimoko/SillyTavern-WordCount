@@ -7,7 +7,8 @@
     bottom: 20px;
     right: 20px;
     z-index: 100;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     user-select: none;
 }
 
@@ -27,6 +28,10 @@
     
     transition: all 0.25s ease;
     opacity: 0.6;
+}
+
+#word-count-display:hover .wc-content {
+    opacity: 0.9;
 }
 
 .wc-number {
