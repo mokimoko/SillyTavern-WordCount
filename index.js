@@ -1,4 +1,4 @@
-import { eventSource, event_types, chat_metadata, getCurrentChatId } from '../../../../script.js';
+import { eventSource, event_types, chat_metadata, getCurrentChatId, saveSettingsDebounced } from '../../../../script.js';
 import { saveMetadataDebounced, extension_settings, getContext } from '../../../extensions.js';
 import { getTokenCountAsync } from '../../../tokenizers.js';
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
@@ -9,6 +9,22 @@ const MODULE_NAME = 'wordCount';
 /** Display modes — click to cycle */
 const MODES = ['words', 'tokens'];
 let currentMode = 'words';
+
+/** Load persisted mode from extension_settings */
+function loadMode() {
+    if (extension_settings[MODULE_NAME]?.mode && MODES.includes(extension_settings[MODULE_NAME].mode)) {
+        currentMode = extension_settings[MODULE_NAME].mode;
+    }
+}
+
+/** Save current mode to extension_settings */
+function saveMode() {
+    if (!extension_settings[MODULE_NAME]) {
+        extension_settings[MODULE_NAME] = {};
+    }
+    extension_settings[MODULE_NAME].mode = currentMode;
+    saveSettingsDebounced();
+}
 
 /** Guard against overlapping async token calculations */
 let tokenCalcGeneration = 0;
@@ -120,12 +136,19 @@ async function calculateTokenCount() {
  * Update the display
  */
 async function updateDisplay() {
-    const visible = isVisible();
     const $display = $('#word-count-display');
     
     if (!$display.length) return;
+
+    // Hide when no chat is open
+    if (!getCurrentChatId()) {
+        $display.fadeOut(200);
+        return;
+    }
     
-    // Update visibility first
+    const visible = isVisible();
+
+    // Update visibility
     if (visible) {
         $display.fadeIn(200);
     } else {
@@ -207,6 +230,7 @@ async function updateWordCountEntry() {
 function cycleMode() {
     const idx = MODES.indexOf(currentMode);
     currentMode = MODES[(idx + 1) % MODES.length];
+    saveMode();
     console.log(`[Word Count] Mode switched to: ${currentMode}`);
     updateDisplay();
 }
@@ -272,6 +296,9 @@ function registerSlashCommand() {
  */
 jQuery(function() {
     console.log('[Word Count] Extension loaded');
+    
+    // Restore persisted mode
+    loadMode();
     
     // Create display
     createDisplay();
