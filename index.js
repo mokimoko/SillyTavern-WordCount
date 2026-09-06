@@ -3,6 +3,7 @@ import { saveMetadataDebounced, extension_settings, getContext } from '../../../
 import { getTokenCountAsync } from '../../../tokenizers.js';
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
+import { makeDraggableBadge } from './draggableBadge.js';
 
 const MODULE_NAME = 'wordCount';
 
@@ -23,6 +24,21 @@ function saveMode() {
         extension_settings[MODULE_NAME] = {};
     }
     extension_settings[MODULE_NAME].mode = currentMode;
+    saveSettingsDebounced();
+}
+
+function getBadgePosition() {
+    return extension_settings[MODULE_NAME]?.badgePosition || null;
+}
+
+function saveBadgePosition(position) {
+    if (!extension_settings[MODULE_NAME]) {
+        extension_settings[MODULE_NAME] = {};
+    }
+    extension_settings[MODULE_NAME].badgePosition = {
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+    };
     saveSettingsDebounced();
 }
 
@@ -240,7 +256,7 @@ function cycleMode() {
  */
 function createDisplay() {
     const $display = $(`
-        <div id="word-count-display">
+        <div id="word-count-display" title="Drag to move · Click to switch words/tokens">
             <div class="wc-content">
                 <span class="wc-number">0</span>
                 <span class="wc-label">words</span>
@@ -250,8 +266,11 @@ function createDisplay() {
     
     $('body').append($display);
 
-    // Click to cycle modes
-    $display.on('click', cycleMode);
+    makeDraggableBadge($display[0], {
+        readPosition: getBadgePosition,
+        writePosition: saveBadgePosition,
+        onClick: cycleMode,
+    });
     
     // Set initial visibility
     if (!isVisible()) {

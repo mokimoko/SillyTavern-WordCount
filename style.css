@@ -8,8 +8,13 @@
     right: 20px;
     z-index: 100;
     pointer-events: auto;
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
+    touch-action: none;
+}
+
+#word-count-display.wc-dragging {
+    cursor: grabbing;
 }
 
 .wc-content {
