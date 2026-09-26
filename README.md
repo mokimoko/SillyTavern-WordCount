@@ -7,3 +7,12 @@ What it says on the tin. Displays a small widget that calculates a chat's word c
 - The widget appears in the bottom-right corner of your chat.
 - **Click** to cycle between word count and token count.
 - Use `/wordcount` or `/wc` to toggle visibility.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
